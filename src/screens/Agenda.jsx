@@ -94,7 +94,7 @@ export default function Agenda() {
           <ChevronRight size={20} style={{ cursor: "pointer", color: C.green }} onClick={() => navega(1)} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+        <div className="table-wrap"><div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, minWidth: 620 }}>
           {["dom","seg","ter","qua","qui","sex","sáb"].map(d =>
             <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: C.sub, padding: 6 }}>{d}</div>)}
           {celulas.map((d, idx) => {
@@ -119,7 +119,7 @@ export default function Agenda() {
                 </div>
               </div>);
           })}
-        </div>
+        </div></div>
       </Card>
 
       {modal && <FormModal title="Novo agendamento" onClose={() => setModal(null)} onSubmit={salvar}

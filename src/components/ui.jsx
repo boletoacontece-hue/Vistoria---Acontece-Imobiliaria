@@ -43,7 +43,7 @@ export function Field({ label, children, w }) {
 }
 
 export function PageHeader({ title, right }) {
-  return <div style={{ background: C.green, borderRadius: "14px 14px 0 0",
+  return <div className="page-head" style={{ background: C.green, borderRadius: "14px 14px 0 0",
     padding: "20px 26px", color: "#fff", display: "flex",
     justifyContent: "space-between", alignItems: "center" }}>
     <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{title}</h1>{right}</div>;

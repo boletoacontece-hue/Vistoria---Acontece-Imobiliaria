@@ -66,7 +66,7 @@ function Cadastro({ titulo, tabela, colunas, campos, busca, demo, ordenar = "cri
         {aviso && <div style={{ background: "#FBE9E7", color: C.red, padding: 10, borderRadius: 8,
           fontSize: 13, marginBottom: 12 }}>{aviso}</div>}
 
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <div className="table-wrap"><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead><tr style={{ borderBottom: `2px solid ${C.line}`, color: C.sub, textAlign: "left" }}>
             {colunas.map(c => <th key={c.key} style={{ padding: "10px 8px", fontSize: 11, textTransform: "uppercase" }}>{c.label}</th>)}
             <th></th></tr></thead>
@@ -81,7 +81,7 @@ function Cadastro({ titulo, tabela, colunas, campos, busca, demo, ordenar = "cri
                   <Pencil size={16} style={{ color: C.sub, cursor: "pointer" }} onClick={() => setModal(r)} /></td>
               </tr>))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
 
       {modal && <FormModal title={modal.id ? `Editar — ${titulo}` : `Novo — ${titulo}`}

@@ -104,7 +104,7 @@ export default function Editor() {
                 {amb.itens.map(item => (
                   <div key={item.id} style={{ border: `1px solid ${C.line}`, borderRadius: 10, padding: 14,
                     marginBottom: 10, background: item.divergencia ? "#FFF8F6" : "#fff" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1.3fr", gap: 12 }}>
+                    <div className="item-grid">
                       <Field label="Item"><input style={inputStyle} value={item.nome}
                         onChange={e=>patchItem(amb.id,item.id,{nome:e.target.value})} /></Field>
                       <Field label="Estado de conservação"><select style={{ ...inputStyle,
