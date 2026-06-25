@@ -5,6 +5,9 @@ import { VitePWA } from "vite-plugin-pwa";
 // PWA offline-first: o app de campo funciona sem sinal no imóvel e
 // sincroniza quando a conexão volta (fila em IndexedDB — ver src/lib/sync.js)
 export default defineConfig({
+  // Caminho base no GitHub Pages = nome do repositório.
+  // Em hospedagem própria (domínio na raiz), troque para "/".
+  base: "/Vistoria---Acontece-Imobiliaria/",
   plugins: [
     react(),
     VitePWA({

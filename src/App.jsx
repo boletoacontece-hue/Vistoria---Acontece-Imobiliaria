@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import Shell from "./components/Shell";
 import Login from "./screens/Login";
@@ -31,8 +31,8 @@ function Protegido() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AuthProvider><Protegido /></AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
