@@ -31,8 +31,10 @@ export default function Shell() {
       <aside style={{ width: 232, background: C.greenDark, color: "#fff", flexShrink: 0 }}>
         <div style={{ padding: "22px 20px", display: "flex", alignItems: "center", gap: 12,
           borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
-          <div style={{ width: 0, height: 0, borderLeft: "13px solid transparent",
-            borderRight: "13px solid transparent", borderBottom: `22px solid ${C.gold}` }} />
+          <div style={{ width: 40, height: 40, background: "#fff", borderRadius: 9,
+            display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <img src={`${import.meta.env.BASE_URL}logo-symbol.png`} alt="Acontece"
+              style={{ width: 28, height: 28, objectFit: "contain" }} /></div>
           <div><div style={{ fontWeight: 800, fontSize: 17, letterSpacing: 1 }}>ACONTECE</div>
             <div style={{ fontSize: 10, opacity: 0.7, letterSpacing: 1.5 }}>VISTORIAS</div></div>
         </div>

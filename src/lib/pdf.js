@@ -1,8 +1,19 @@
 import { jsPDF } from "jspdf";
 
+// Carrega a logo (em /public) como dataURL para embutir no PDF
+async function carregarLogo() {
+  try {
+    const resp = await fetch(`${import.meta.env.BASE_URL}logo-acontece.png`);
+    const blob = await resp.blob();
+    return await new Promise((res) => {
+      const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob);
+    });
+  } catch { return null; }
+}
+
 // Gera o Termo de Vistoria em PDF, na identidade Acontece.
 // Recebe a vistoria completa (carregarVistoria) e baixa o arquivo.
-export function gerarLaudoPDF(v) {
+export async function gerarLaudoPDF(v) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210, M = 18;
   let y = 20;
@@ -11,12 +22,20 @@ export function gerarLaudoPDF(v) {
   const linha = () => { doc.setDrawColor(...GREEN); doc.setLineWidth(0.6); doc.line(M, y, W - M, y); };
   const quebra = (h = 6) => { y += h; if (y > 275) { doc.addPage(); y = 20; } };
 
-  // Cabeçalho
-  doc.setTextColor(...GREEN); doc.setFont("helvetica", "bold"); doc.setFontSize(20);
-  doc.text("ACONTECE", W / 2, y, { align: "center" });
-  doc.setFontSize(8); doc.setTextColor(90);
-  doc.text("ASSESSORIA E PLANEJAMENTO IMOBILIÁRIO", W / 2, y + 5, { align: "center" });
-  y += 11; linha(); quebra(8);
+  // Cabeçalho — logo Acontece (ou texto, se a imagem não carregar)
+  const logo = await carregarLogo();
+  if (logo) {
+    const lw = 44, lh = lw * 326 / 365; // proporção real da logo
+    doc.addImage(logo, "PNG", (W - lw) / 2, y - 4, lw, lh);
+    y += lh - 2;
+  } else {
+    doc.setTextColor(...GREEN); doc.setFont("helvetica", "bold"); doc.setFontSize(20);
+    doc.text("ACONTECE", W / 2, y, { align: "center" });
+    doc.setFontSize(8); doc.setTextColor(90);
+    doc.text("ASSESSORIA E PLANEJAMENTO IMOBILIÁRIO", W / 2, y + 5, { align: "center" });
+    y += 11;
+  }
+  linha(); quebra(8);
 
   doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20);
   doc.text(`TERMO DE VISTORIA — ${(v.tipo?.nome || "").toUpperCase()}`, W / 2, y, { align: "center" });

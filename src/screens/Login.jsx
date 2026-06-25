@@ -17,11 +17,11 @@ export default function Login() {
     <div style={{ fontFamily: FONT, minHeight: "100vh", background: C.greenDark,
       display: "grid", placeItems: "center", padding: 20 }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: 36, width: 360, boxShadow: "0 12px 40px rgba(0,0,0,0.3)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ width: 0, height: 0, borderLeft: "15px solid transparent",
-            borderRight: "15px solid transparent", borderBottom: `26px solid ${C.gold}` }} />
-          <div><div style={{ fontWeight: 800, fontSize: 20, color: C.green, letterSpacing: 1 }}>ACONTECE</div>
-            <div style={{ fontSize: 10, color: C.sub, letterSpacing: 2 }}>VISTORIAS</div></div>
+        <div style={{ textAlign: "center", marginBottom: 26 }}>
+          <img src={`${import.meta.env.BASE_URL}logo-acontece.png`} alt="Acontece Imobiliária"
+            style={{ width: 168, height: "auto", margin: "0 auto" }} />
+          <div style={{ fontSize: 11, color: C.sub, letterSpacing: 3, marginTop: 4, fontWeight: 600 }}>
+            SISTEMA DE VISTORIAS</div>
         </div>
         {!supabaseReady && <div style={{ background: C.goldSoft, color: "#8a6d00", padding: 10,
           borderRadius: 8, fontSize: 12, marginBottom: 16 }}>
