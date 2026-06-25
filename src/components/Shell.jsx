@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, ClipboardCheck, CalendarDays, Building2, Users,
-  ListChecks, Settings, Bell, Maximize2, ChevronDown, WifiOff, RefreshCw } from "lucide-react";
+  ListChecks, Settings, Bell, Maximize2, ChevronDown, WifiOff, RefreshCw, LogOut } from "lucide-react";
 import { C, FONT } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { online, pendentes, sincronizar } from "../lib/sync";
@@ -13,6 +13,7 @@ const NAV = [
   { to: "/imoveis", label: "Imóveis", icon: Building2 },
   { to: "/locadores", label: "Locadores", icon: Users },
   { to: "/tipos", label: "Tipos de vistoria", icon: ListChecks },
+  { to: "/vistoriadores", label: "Vistoriadores", icon: Users },
 ];
 
 export default function Shell() {
@@ -20,6 +21,7 @@ export default function Shell() {
   const nav = useNavigate();
   const [pend, setPend] = useState(0);
   const [off, setOff] = useState(!online());
+  const [menuAberto, setMenuAberto] = useState(false);
 
   useEffect(() => {
     const t = setInterval(async () => { setPend(await pendentes()); setOff(!online()); }, 3000);
@@ -60,12 +62,33 @@ export default function Shell() {
             fontSize: 12, fontWeight: 700, cursor: "pointer" }}><RefreshCw size={14} /> {pend} p/ sincronizar</button>}
           <Maximize2 size={18} color={C.sub} style={{ cursor: "pointer" }} />
           <Bell size={18} color={C.sub} style={{ cursor: "pointer" }} />
-          <div onClick={sair} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} title="Sair">
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.greenSoft, color: C.green,
-              display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13 }}>
-              {(profile?.nome || "A")[0].toUpperCase()}</div>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{profile?.nome || "comercial2"}</span>
-            <ChevronDown size={15} color={C.sub} />
+          <div style={{ position: "relative" }}>
+            <div onClick={() => setMenuAberto(o => !o)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.greenSoft, color: C.green,
+                display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13 }}>
+                {(profile?.nome || "A")[0].toUpperCase()}</div>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{profile?.nome || "comercial2"}</span>
+              <ChevronDown size={15} color={C.sub} />
+            </div>
+            {menuAberto && (
+              <>
+                <div onClick={() => setMenuAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 30 }} />
+                <div style={{ position: "absolute", right: 0, top: 42, background: "#fff", border: `1px solid ${C.line}`,
+                  borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,0.14)", width: 200, zIndex: 40, overflow: "hidden" }}>
+                  <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.line}` }}>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{profile?.nome || "comercial2"}</div>
+                    <div style={{ fontSize: 11, color: C.sub }}>{profile?.email || ""}</div>
+                    {profile?.papel && <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginTop: 2,
+                      textTransform: "capitalize" }}>{profile.papel}</div>}
+                  </div>
+                  <div onClick={sair} style={{ padding: "11px 14px", display: "flex", gap: 10, alignItems: "center",
+                    fontSize: 13, cursor: "pointer", color: C.red, fontWeight: 600 }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#FBE9E7"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                    <LogOut size={15} /> Sair</div>
+                </div>
+              </>
+            )}
           </div>
         </header>
         <main style={{ padding: 26, maxWidth: 1280, margin: "0 auto" }}><Outlet /></main>
