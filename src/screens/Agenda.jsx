@@ -6,7 +6,30 @@ import FormModal from "../components/FormModal";
 import { supabase, supabaseReady } from "../lib/supabase";
 
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
-const corTipo = { "Agendamento": C.green, "Pré-agendamento": C.amber, "Indisponibilidade": C.red };
+// Paleta de status da agenda (mesma legenda do Devolus)
+const STATUS = {
+  "Em andamento":      "#2DA8C4", // azul/ciano
+  "Atrasada":          "#E0A800", // amarelo
+  "Concluída":         "#2E9E4F", // verde
+  "Cancelada":         "#DC2626", // vermelho
+  "Indisponibilidade": "#9AA0A6", // cinza
+  "Pré-Agendamento":   "#7C3AED", // roxo
+};
+const LEGENDA = Object.entries(STATUS);
+
+// Resolve o status visual de um agendamento (tipo tem prioridade sobre situação)
+function statusAgendamento(a) {
+  if (a.tipo === "Indisponibilidade") return "Indisponibilidade";
+  if (a.tipo === "Pré-agendamento")   return "Pré-Agendamento";
+  if (a.situacao === "Em andamento")  return "Em andamento";
+  if (a.situacao === "Concluída")     return "Concluída";
+  if (a.situacao === "Cancelada")     return "Cancelada";
+  // Agendada: aberta (futura) = em andamento; vencida sem conclusão = atrasada
+  if (a.situacao === "Agendada")
+    return new Date(a.data_hora) < new Date() ? "Atrasada" : "Em andamento";
+  return "Em andamento";
+}
+const corAgendamento = (a) => STATUS[statusAgendamento(a)] || C.sub;
 
 export default function Agenda() {
   const hoje = new Date();
@@ -38,7 +61,7 @@ export default function Agenda() {
     const ini = new Date(ref.ano, ref.mes, 1).toISOString();
     const fim = new Date(ref.ano, ref.mes + 1, 1).toISOString();
     let q = supabase.from("agendamentos")
-      .select("id, tipo, data_hora, vistoriador_id, locatario_nome, imovel:imoveis(endereco)")
+      .select("id, tipo, situacao, data_hora, vistoriador_id, locatario_nome, imovel:imoveis(endereco)")
       .gte("data_hora", ini).lt("data_hora", fim);
     if (filtroVist) q = q.eq("vistoriador_id", filtroVist);
     const { data } = await q;
@@ -112,7 +135,7 @@ export default function Agenda() {
                   {itens.slice(0, 4).map(a => (
                     <div key={a.id} title={a.imovel?.endereco} style={{ display: "flex", gap: 4, alignItems: "center",
                       fontSize: 10, color: C.sub, whiteSpace: "nowrap", overflow: "hidden" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: corTipo[a.tipo] || C.sub, flexShrink: 0 }} />
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: corAgendamento(a), flexShrink: 0 }} />
                       {new Date(a.data_hora).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} {a.locatario_nome || ""}
                     </div>))}
                   {itens.length > 4 && <div style={{ fontSize: 10, color: C.green }}>+{itens.length - 4}</div>}
@@ -120,6 +143,15 @@ export default function Agenda() {
               </div>);
           })}
         </div></div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 16, paddingTop: 14,
+          borderTop: `1px solid ${C.line}` }}>
+          {LEGENDA.map(([nome, cor]) => (
+            <span key={nome} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.ink }}>
+              <span style={{ width: 11, height: 11, borderRadius: "50%", background: cor }} /> {nome}
+            </span>
+          ))}
+        </div>
       </Card>
 
       {modal && <FormModal title="Novo agendamento" onClose={() => setModal(null)} onSubmit={salvar}
