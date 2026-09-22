@@ -6,6 +6,7 @@ import { C, FONT, ESTADOS, estadoCor } from "../lib/theme";
 import { PageHeader, Card, Field, Btn, inputStyle, situacaoBadge, Badge } from "../components/ui";
 import { carregarVistoria, salvar, remover, enviarFoto, enviarPanorama } from "../lib/vistoriasService";
 import Panorama360 from "../components/Panorama360";
+import { Painel, DadosPrincipais, CabecalhoObs, Medidores, Assinaturas } from "../components/VistoriaPaineis";
 import { supabase, supabaseReady } from "../lib/supabase";
 import { DEMO_DETALHE } from "../lib/demo";
 import { gerarLaudoPDF } from "../lib/pdf";
@@ -18,6 +19,7 @@ export default function Editor() {
   const [tour360, setTour360] = useState(false);
   const [pano, setPano] = useState(null);
   const [erroCarga, setErroCarga] = useState("");
+  const [painel, setPainel] = useState(null);
 
   useEffect(() => {
     if (!supabaseReady) { setV(DEMO_DETALHE); setAberto(DEMO_DETALHE.ambientes[0]?.id); return; }
@@ -31,11 +33,17 @@ export default function Editor() {
   if (erroCarga) return <div style={{ padding: 40, color: C.red }}>Não foi possível abrir a vistoria: {erroCarga}</div>;
   if (!v) return <div style={{ padding: 40 }}>Carregando…</div>;
 
-  // Atualiza campos escalares da vistoria (ex.: link do tour 360°) e persiste
+  // Colunas reais da tabela vistorias (só estas vão para o banco)
+  const COLS = ["tour_360_url","faxinado","chaves","cabecalho","observacao","observacao_interna",
+    "medidores","vistoriador_id","tipo_vistoria_id","data_vistoria","situacao"];
+  // Atualiza campos da vistoria: aplica localmente e persiste as colunas reais
   function patchVistoria(patch) {
     setV(cur => ({ ...cur, ...patch }));
-    if (supabaseReady) supabase.from("vistorias").update(patch).eq("id", v.id).then(() => {});
+    const db = Object.fromEntries(Object.entries(patch).filter(([k]) => COLS.includes(k)));
+    if (supabaseReady && Object.keys(db).length) supabase.from("vistorias").update(db).eq("id", v.id).then(() => {});
   }
+  // Atualiza só o estado local (objetos vinculados: vistoriador, tipo, assinaturas)
+  function onLocal(patch) { setV(cur => ({ ...cur, ...patch })); }
 
   function patchItem(ambId, itemId, patch) {
     const ambientes = v.ambientes.map(a => a.id === ambId
@@ -117,8 +125,21 @@ export default function Editor() {
           display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
           <Field label="Imóvel" w={4}><div style={{ fontWeight: 600, fontSize: 13 }}>{v.imovel?.endereco}</div></Field>
           <Field label="Situação"><div>{situacaoBadge(v.situacao)} <span style={{ marginLeft: 6 }}>{v.tipo?.nome}</span></div></Field>
-          <Field label="Vistoriador"><div style={{ fontSize: 13 }}>{v.vistoriador?.nome}</div></Field>
+          <Field label="Vistoriador"><div style={{ fontSize: 13 }}>{v.vistoriador?.nome || "—"}</div></Field>
+          <Field label="Data"><div style={{ fontSize: 13 }}>{v.data_vistoria ? v.data_vistoria.split("-").reverse().join("/") : "—"}</div></Field>
+          <Field label="Faxinado"><div style={{ fontSize: 13 }}>{v.faxinado ? "Sim" : "Não"}</div></Field>
+          {v.chaves && <Field label="Chaves" w={4}><div style={{ fontSize: 13 }}>{v.chaves}</div></Field>}
         </div>
+
+        <Painel titulo="Dados principais" aberto={painel === "dados"} onToggle={() => setPainel(painel === "dados" ? null : "dados")}>
+          <DadosPrincipais v={v} patch={patchVistoria} onLocal={onLocal} /></Painel>
+        <Painel titulo="Cabeçalho / Observação" aberto={painel === "obs"} onToggle={() => setPainel(painel === "obs" ? null : "obs")}>
+          <CabecalhoObs v={v} patch={patchVistoria} /></Painel>
+        <Painel titulo="Medidores" aberto={painel === "med"} onToggle={() => setPainel(painel === "med" ? null : "med")}>
+          <Medidores v={v} patch={patchVistoria} /></Painel>
+        <Painel titulo={`Assinaturas${v.assinaturas?.length ? ` (${v.assinaturas.length})` : ""}`} aberto={painel === "ass"}
+          onToggle={() => setPainel(painel === "ass" ? null : "ass")}>
+          <Assinaturas v={v} onLocal={onLocal} /></Painel>
 
         <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, marginBottom: 20,
           display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>

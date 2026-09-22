@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, MoreVertical, Pencil, FileText, Copy, Camera } from "lucide-react";
+import { Search, Plus, MoreVertical, Pencil, FileText, Copy, Camera, Share2 } from "lucide-react";
 import { C } from "../lib/theme";
 import { PageHeader, Card, Field, Btn, inputStyle, situacaoBadge } from "../components/ui";
-import { listarVistorias, carregarVistoria, replicarVistoria } from "../lib/vistoriasService";
+import { listarVistorias, carregarVistoria, replicarVistoria, baixarFotosZip } from "../lib/vistoriasService";
 import { gerarLaudoPDF } from "../lib/pdf";
 import { supabase, supabaseReady } from "../lib/supabase";
 import { DEMO_VISTORIAS } from "../lib/demo";
@@ -96,11 +96,16 @@ export default function Vistorias() {
               Vistoria {menu.codigo}</div>
             {[
               [Pencil, "Editar", () => nav(`/vistorias/${menu.id}`)],
-              [FileText, "Gerar laudo (PDF)", async () => { const d = await carregarVistoria(menu.id); await gerarLaudoPDF(d); setMenu(null); }],
+              [FileText, "Download do termo (PDF)", async () => { const d = await carregarVistoria(menu.id); await gerarLaudoPDF(d); setMenu(null); }],
+              [Camera, "Download das fotos (.zip)", async () => { try { await baixarFotosZip(menu.id, menu.codigo); } catch (e) { alert(e.message); } setMenu(null); }],
               [Copy, "Replicar", async () => { const id = await replicarVistoria(menu.id); setMenu(null); nav(`/vistorias/${id}`); }],
-            ].map(([Ic, label, fn], i) => (
+              [Share2, "Compartilhar via WhatsApp", () => {
+                const link = `${window.location.origin}${import.meta.env.BASE_URL}#/vistorias/${menu.id}`;
+                const txt = `Vistoria ${menu.codigo} — ${menu.tipo?.nome || ""}\n${menu.imovel?.endereco || ""}\n${link}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank"); setMenu(null); }],
+            ].map(([Ic, label, fn], i, arr) => (
               <div key={i} onClick={fn} style={{ padding: "14px 18px", display: "flex", gap: 12, alignItems: "center",
-                fontSize: 14, cursor: "pointer", borderBottom: i < 2 ? `1px solid ${C.line}` : "none" }}
+                fontSize: 14, cursor: "pointer", borderBottom: i < arr.length - 1 ? `1px solid ${C.line}` : "none" }}
                 onMouseEnter={e => e.currentTarget.style.background = C.greenSoft}
                 onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
                 <Ic size={16} color={C.green} />{label}</div>))}

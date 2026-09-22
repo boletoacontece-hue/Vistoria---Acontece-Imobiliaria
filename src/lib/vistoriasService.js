@@ -84,3 +84,27 @@ export async function replicarVistoria(id) {
   }
   return nova.id;
 }
+
+// Baixa todas as mídias da vistoria (fotos + 360°) num .zip
+export async function baixarFotosZip(vistoriaId, codigo) {
+  const JSZip = (await import("jszip")).default;
+  const zip = new JSZip();
+  const base = `vistorias/${vistoriaId}`;
+  const pastas = [base, `${base}/360`];
+  let total = 0;
+  for (const pasta of pastas) {
+    const { data: arquivos } = await supabase.storage.from("vistorias").list(pasta, { limit: 500 });
+    for (const f of (arquivos || [])) {
+      if (!f.name || f.id === null) continue; // ignora subpastas
+      const path = `${pasta}/${f.name}`;
+      const { data: s } = await supabase.storage.from("vistorias").createSignedUrl(path, 600);
+      if (!s?.signedUrl) continue;
+      const blob = await (await fetch(s.signedUrl)).blob();
+      zip.file(pasta === base ? f.name : `360/${f.name}`, blob); total++;
+    }
+  }
+  if (!total) throw new Error("Esta vistoria ainda não tem fotos enviadas.");
+  const out = await zip.generateAsync({ type: "blob" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(out);
+  a.download = `fotos-vistoria-${codigo}.zip`; a.click(); URL.revokeObjectURL(a.href);
+}
