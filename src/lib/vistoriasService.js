@@ -61,3 +61,26 @@ export async function enviarPanorama(vistoriaId, ambienteId, file) {
   if (error) throw error;
   return path;
 }
+
+// Replica uma vistoria (cabeçalho + ambientes + itens) como nova
+export async function replicarVistoria(id) {
+  const orig = await carregarVistoria(id);
+  const { data: nova, error } = await supabase.from("vistorias").insert({
+    imovel_id: orig.imovel_id, tipo_vistoria_id: orig.tipo_vistoria_id,
+    vistoriador_id: orig.vistoriador_id, data_vistoria: new Date().toISOString().slice(0, 10),
+    situacao: "Nova",
+  }).select("id").single();
+  if (error) throw error;
+  for (const amb of (orig.ambientes || [])) {
+    const { data: na } = await supabase.from("ambientes").insert({
+      vistoria_id: nova.id, nome: amb.nome, complemento: amb.complemento, ordem: amb.ordem,
+    }).select("id").single();
+    if (na && amb.itens?.length) {
+      await supabase.from("itens").insert(amb.itens.map(it => ({
+        ambiente_id: na.id, nome: it.nome, estado: it.estado, cor_material: it.cor_material,
+        observacao: it.observacao, ordem: it.ordem, divergencia: it.divergencia, responsavel: it.responsavel,
+      })));
+    }
+  }
+  return nova.id;
+}

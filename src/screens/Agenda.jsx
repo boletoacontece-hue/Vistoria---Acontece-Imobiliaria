@@ -19,11 +19,12 @@ const LEGENDA = Object.entries(STATUS);
 
 // Resolve o status visual de um agendamento (tipo tem prioridade sobre situação)
 function statusAgendamento(a) {
+  // situação final tem prioridade sobre o tipo
+  if (a.situacao === "Cancelada")     return "Cancelada";
+  if (a.situacao === "Concluída")     return "Concluída";
   if (a.tipo === "Indisponibilidade") return "Indisponibilidade";
   if (a.tipo === "Pré-agendamento")   return "Pré-Agendamento";
   if (a.situacao === "Em andamento")  return "Em andamento";
-  if (a.situacao === "Concluída")     return "Concluída";
-  if (a.situacao === "Cancelada")     return "Cancelada";
   // Agendada: aberta (futura) = em andamento; vencida sem conclusão = atrasada
   if (a.situacao === "Agendada")
     return new Date(a.data_hora) < new Date() ? "Atrasada" : "Em andamento";
@@ -133,7 +134,7 @@ export default function Agenda() {
               <div key={idx} style={{ minHeight: 88, border: `1px solid ${C.line}`, borderRadius: 8,
                 padding: 6, background: ehHoje(d) ? C.greenSoft : "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  {itens.length > 0 && <span style={{ background: C.green, color: "#fff", fontSize: 10,
+                  {itens.length > 0 && <span style={{ background: C.sub, color: "#fff", fontSize: 10,
                     fontWeight: 700, borderRadius: 10, padding: "1px 6px" }}>{itens.length}</span>}
                   <span style={{ fontSize: 12, fontWeight: ehHoje(d) ? 800 : 500, marginLeft: "auto" }}>{d}</span>
                 </div>

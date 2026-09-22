@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, ChevronRight, Camera, AlertTriangle, FileText,
-  Building2, ListChecks, Orbit, ExternalLink, X, MapPin } from "lucide-react";
-import { C, ESTADOS, estadoCor } from "../lib/theme";
+  Building2, ListChecks, Orbit, ExternalLink, X, MapPin, Trash2 } from "lucide-react";
+import { C, FONT, ESTADOS, estadoCor } from "../lib/theme";
 import { PageHeader, Card, Field, Btn, inputStyle, situacaoBadge, Badge } from "../components/ui";
-import { carregarVistoria, salvar, enviarFoto, enviarPanorama } from "../lib/vistoriasService";
+import { carregarVistoria, salvar, remover, enviarFoto, enviarPanorama } from "../lib/vistoriasService";
 import Panorama360 from "../components/Panorama360";
 import { supabase, supabaseReady } from "../lib/supabase";
 import { DEMO_DETALHE } from "../lib/demo";
@@ -58,6 +58,23 @@ export default function Editor() {
     setV({ ...v, ambientes });
     if (supabaseReady) salvar("itens", novo).catch(()=>{});
   }
+  function patchAmbiente(ambId, patch) {
+    const ambientes = v.ambientes.map(a => a.id === ambId ? { ...a, ...patch } : a);
+    setV({ ...v, ambientes });
+    if (supabaseReady) supabase.from("ambientes").update(patch).eq("id", ambId).then(() => {});
+  }
+  async function removeAmbiente(ambId) {
+    if (!window.confirm("Excluir este ambiente e todos os seus itens?")) return;
+    if (supabaseReady) { try { await remover("ambientes", ambId); } catch {} }
+    setV({ ...v, ambientes: v.ambientes.filter(a => a.id !== ambId) });
+  }
+  async function removeItem(ambId, itemId) {
+    if (supabaseReady) { try { await remover("itens", itemId); } catch {} }
+    const ambientes = v.ambientes.map(a => a.id === ambId
+      ? { ...a, itens: a.itens.filter(i => i.id !== itemId) } : a);
+    setV({ ...v, ambientes });
+  }
+
   async function onFoto(e, ambId) {
     const file = e.target.files?.[0]; if (!file) return;
     const amb = v.ambientes.map(a => a.id === ambId ? { ...a, fotos: (a.fotos||0)+1 } : a);
@@ -137,11 +154,20 @@ export default function Editor() {
                 <span><Camera size={13} style={{ verticalAlign: -2 }} /> {amb.fotos || 0}</span>
                 <span>{amb.itens.length} itens</span>
                 {amb.itens.some(i=>i.divergencia) && <Badge color={C.red} soft="#FBE9E7">divergência</Badge>}
+                <Trash2 size={16} style={{ cursor: "pointer", color: C.red }}
+                  onClick={(e) => { e.stopPropagation(); removeAmbiente(amb.id); }} title="Excluir ambiente" />
               </div>
             </div>
 
             {aberto === amb.id && (
               <div style={{ padding: 18 }}>
+                <div className="item-grid" style={{ marginBottom: 14 }}>
+                  <Field label="Nome do ambiente"><input style={inputStyle} value={amb.nome}
+                    onChange={e => patchAmbiente(amb.id, { nome: e.target.value })} /></Field>
+                  <Field label="Complemento"><input style={inputStyle} value={amb.complemento || ""}
+                    onChange={e => patchAmbiente(amb.id, { complemento: e.target.value })}
+                    placeholder="ex.: Sala de estar/jantar" /></Field>
+                </div>
                 {amb.itens.map(item => (
                   <div key={item.id} style={{ border: `1px solid ${C.line}`, borderRadius: 10, padding: 14,
                     marginBottom: 10, background: item.divergencia ? "#FFF8F6" : "#fff" }}>
@@ -167,6 +193,10 @@ export default function Editor() {
                         <select style={inputStyle} value={item.responsavel||"Locatário"}
                           onChange={e=>patchItem(amb.id,item.id,{responsavel:e.target.value})}>
                           {["Locatário","Proprietário","Ambos"].map(r=><option key={r}>{r}</option>)}</select></Field>}
+                      <button onClick={() => removeItem(amb.id, item.id)} title="Excluir item"
+                        style={{ marginLeft: "auto", background: "none", border: "none", color: C.red, cursor: "pointer",
+                          display: "flex", gap: 5, alignItems: "center", fontSize: 12, fontWeight: 700, fontFamily: FONT }}>
+                        <Trash2 size={14} /> Excluir item</button>
                     </div>
                   </div>
                 ))}

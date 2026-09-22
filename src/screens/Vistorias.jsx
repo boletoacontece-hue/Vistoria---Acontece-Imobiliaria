@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Search, Plus, MoreVertical, Pencil, FileText, Copy, Camera } from "lucide-react";
 import { C } from "../lib/theme";
 import { PageHeader, Card, Field, Btn, inputStyle, situacaoBadge } from "../components/ui";
-import { listarVistorias } from "../lib/vistoriasService";
-import { supabaseReady } from "../lib/supabase";
+import { listarVistorias, carregarVistoria, replicarVistoria } from "../lib/vistoriasService";
+import { gerarLaudoPDF } from "../lib/pdf";
+import { supabase, supabaseReady } from "../lib/supabase";
 import { DEMO_VISTORIAS } from "../lib/demo";
 import NovaVistoriaModal from "../components/NovaVistoriaModal";
 
@@ -16,12 +17,19 @@ export default function Vistorias() {
   const [menu, setMenu] = useState(null);
   const [novaAberto, setNovaAberto] = useState(false);
   const [erro, setErro] = useState("");
+  const [mesCount, setMesCount] = useState(0);
   const nav = useNavigate();
 
   function carregar() {
     if (!supabaseReady) { setRows(DEMO_VISTORIAS); return; }
     listarVistorias().then(r => { setRows(r); setErro(""); })
       .catch(e => { setRows([]); setErro(e.message); });
+    const hoje = new Date();
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1).toISOString().slice(0, 10);
+    supabase.from("vistorias").select("id", { count: "exact", head: true })
+      .gte("data_vistoria", ini).lt("data_vistoria", fim)
+      .then(({ count }) => setMesCount(count || 0));
   }
   useEffect(() => { carregar(); }, []);
 
@@ -29,7 +37,7 @@ export default function Vistorias() {
     <div>
       <PageHeader title="Vistoria" right={<div style={{ textAlign: "right", fontSize: 13 }}>
         <div style={{ opacity: 0.85 }}>vistorias mês</div>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>40/150</div></div>} />
+        <div style={{ fontWeight: 800, fontSize: 18 }}>{mesCount}/150</div></div>} />
       <Card>
         <div style={{ fontWeight: 700, marginBottom: 14, color: C.ink }}>Pesquisa</div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
@@ -70,28 +78,35 @@ export default function Vistorias() {
                   <td style={{ padding: "12px 8px" }}>{v.tipo?.nome}</td>
                   <td style={{ padding: "12px 8px", whiteSpace: "nowrap" }}>{formatar(v.data_vistoria)}</td>
                   <td style={{ padding: "12px 8px" }}>{situacaoBadge(v.situacao)}</td>
-                  <td style={{ padding: "12px 8px", position: "relative" }}>
-                    <MoreVertical size={18} style={{ cursor: "pointer", color: C.sub }} onClick={()=>setMenu(menu===v.id?null:v.id)} />
-                    {menu===v.id && (
-                      <div style={{ position: "absolute", right: 8, top: 36, background: "#fff",
-                        border: `1px solid ${C.line}`, borderRadius: 10, boxShadow: "0 6px 24px rgba(0,0,0,0.14)",
-                        zIndex: 20, width: 210, overflow: "hidden" }}>
-                        {[[Pencil,"Editar",()=>nav(`/vistorias/${v.id}`)],[FileText,"Download do termo"],
-                          [Copy,"Download da comparação"],[Camera,"Download das fotos"],[Copy,"Replicar"]]
-                          .map(([Ic,label,fn],i)=>(
-                          <div key={i} onClick={fn||(()=>setMenu(null))} style={{ padding: "11px 14px",
-                            display: "flex", gap: 10, alignItems: "center", fontSize: 13, cursor: "pointer",
-                            borderBottom: i<4?`1px solid ${C.line}`:"none" }}
-                            onMouseEnter={e=>e.currentTarget.style.background=C.greenSoft}
-                            onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                            <Ic size={15} color={C.sub} />{label}</div>))}
-                      </div>)}
+                  <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                    <MoreVertical size={18} style={{ cursor: "pointer", color: C.sub }} onClick={()=>setMenu(v)} />
                   </td>
                 </tr>))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {menu && (
+        <div onClick={() => setMenu(null)} style={{ position: "fixed", inset: 0, background: "rgba(20,31,20,0.5)",
+          display: "grid", placeItems: "center", zIndex: 100, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 320,
+            maxWidth: "100%", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ background: C.green, color: "#fff", padding: "14px 18px", fontWeight: 700 }}>
+              Vistoria {menu.codigo}</div>
+            {[
+              [Pencil, "Editar", () => nav(`/vistorias/${menu.id}`)],
+              [FileText, "Gerar laudo (PDF)", async () => { const d = await carregarVistoria(menu.id); await gerarLaudoPDF(d); setMenu(null); }],
+              [Copy, "Replicar", async () => { const id = await replicarVistoria(menu.id); setMenu(null); nav(`/vistorias/${id}`); }],
+            ].map(([Ic, label, fn], i) => (
+              <div key={i} onClick={fn} style={{ padding: "14px 18px", display: "flex", gap: 12, alignItems: "center",
+                fontSize: 14, cursor: "pointer", borderBottom: i < 2 ? `1px solid ${C.line}` : "none" }}
+                onMouseEnter={e => e.currentTarget.style.background = C.greenSoft}
+                onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                <Ic size={16} color={C.green} />{label}</div>))}
+          </div>
+        </div>
+      )}
 
       {novaAberto && <NovaVistoriaModal onClose={() => setNovaAberto(false)}
         onCriada={(id) => { setNovaAberto(false); nav(`/vistorias/${id}`); }} />}
