@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Search, Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { C } from "../lib/theme";
+import { C, FONT } from "../lib/theme";
 import { PageHeader, Card, Field, Btn, inputStyle } from "../components/ui";
 import FormModal from "../components/FormModal";
 import { supabase, supabaseReady } from "../lib/supabase";
@@ -38,6 +38,7 @@ export default function Agenda() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [opts, setOpts] = useState({ imoveis: [], tipos: [], vistoriadores: [] });
   const [modal, setModal] = useState(null);
+  const [detalhe, setDetalhe] = useState(null);
 
   // carrega opções dos selects (uma vez)
   useEffect(() => {
@@ -69,6 +70,11 @@ export default function Agenda() {
   }, [ref, filtroVist]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  async function mudarSituacao(id, situacao) {
+    await supabase.from("agendamentos").update({ situacao }).eq("id", id);
+    setDetalhe(null); await carregar();
+  }
 
   async function salvar(v) {
     if (!supabaseReady) throw new Error("Configure o Supabase para gravar.");
@@ -133,7 +139,8 @@ export default function Agenda() {
                 </div>
                 <div style={{ marginTop: 4, lineHeight: 1.4 }}>
                   {itens.slice(0, 4).map(a => (
-                    <div key={a.id} title={a.imovel?.endereco} style={{ display: "flex", gap: 4, alignItems: "center",
+                    <div key={a.id} title={a.imovel?.endereco} onClick={() => setDetalhe(a)}
+                      style={{ display: "flex", gap: 4, alignItems: "center", cursor: "pointer",
                       fontSize: 10, color: C.sub, whiteSpace: "nowrap", overflow: "hidden" }}>
                       <span style={{ width: 6, height: 6, borderRadius: "50%", background: corAgendamento(a), flexShrink: 0 }} />
                       {new Date(a.data_hora).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} {a.locatario_nome || ""}
@@ -166,6 +173,37 @@ export default function Agenda() {
           { key: "locatario_nome", label: "Locatário", w: 2 },
           { key: "observacao", label: "Observação", w: 2 },
         ]} />}
+
+      {detalhe && (
+        <div onClick={() => setDetalhe(null)} style={{ position: "fixed", inset: 0, background: "rgba(20,31,20,0.5)",
+          display: "grid", placeItems: "center", zIndex: 100, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 440,
+            maxWidth: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" }}>
+            <div style={{ background: C.green, color: "#fff", padding: "14px 20px", display: "flex",
+              justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>Agendamento</h3>
+              <span onClick={() => setDetalhe(null)} style={{ cursor: "pointer", fontSize: 20 }}>×</span>
+            </div>
+            <div style={{ padding: 20, fontSize: 13, lineHeight: 1.7 }}>
+              <div><b>Data:</b> {new Date(detalhe.data_hora).toLocaleString("pt-BR")}</div>
+              <div><b>Tipo:</b> {detalhe.tipo}</div>
+              <div><b>Situação:</b> {detalhe.situacao || "Agendada"}</div>
+              {detalhe.imovel?.endereco && <div><b>Imóvel:</b> {detalhe.imovel.endereco}</div>}
+              {detalhe.locatario_nome && <div><b>Locatário:</b> {detalhe.locatario_nome}</div>}
+            </div>
+            <div style={{ padding: "0 20px 20px", display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {detalhe.situacao === "Cancelada"
+                ? <Btn kind="ghost" onClick={() => mudarSituacao(detalhe.id, "Agendada")}>Reabrir</Btn>
+                : <>
+                    <Btn kind="soft" onClick={() => mudarSituacao(detalhe.id, "Concluída")}>Concluir</Btn>
+                    <button onClick={() => mudarSituacao(detalhe.id, "Cancelada")} style={{ background: "#FBE9E7",
+                      color: C.red, border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700,
+                      fontSize: 13, cursor: "pointer", fontFamily: FONT }}>Cancelar agendamento</button>
+                  </>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

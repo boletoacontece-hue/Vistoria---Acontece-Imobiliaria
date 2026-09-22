@@ -8,6 +8,7 @@ import Vistorias from "./screens/Vistorias";
 import Editor from "./screens/Editor";
 import Agenda from "./screens/Agenda";
 import { Imoveis, Locadores, Tipos, Vistoriadores } from "./screens/Cadastros";
+import Usuarios from "./screens/Usuarios";
 
 function Protegido() {
   const { user, loading, supabaseReady } = useAuth();
@@ -25,6 +26,7 @@ function Protegido() {
         <Route path="locadores" element={<Locadores />} />
         <Route path="tipos" element={<Tipos />} />
         <Route path="vistoriadores" element={<Vistoriadores />} />
+        <Route path="usuarios" element={<Usuarios />} />
       </Route>
     </Routes>
   );

@@ -45,6 +45,12 @@ function Cadastro({ titulo, tabela, colunas, campos, busca, demo, ordenar = "cri
     await carregar();
   }
 
+  async function alternarAtivo(r) {
+    if (!supabaseReady) return;
+    const { error } = await supabase.from(tabela).update({ ativo: !r.ativo }).eq("id", r.id);
+    if (!error) carregar();
+  }
+
   return (
     <div>
       <PageHeader title={titulo} />
@@ -76,7 +82,13 @@ function Cadastro({ titulo, tabela, colunas, campos, busca, demo, ordenar = "cri
                 Nenhum registro. Clique em <b>Novo</b> para cadastrar.</td></tr>)}
             {rows.map((r, i) => (
               <tr key={r.id || i} style={{ borderBottom: `1px solid ${C.line}` }}>
-                {colunas.map(c => <td key={c.key} style={{ padding: "12px 8px" }}>{c.render ? c.render(r[c.key]) : r[c.key]}</td>)}
+                {colunas.map(c => <td key={c.key} style={{ padding: "12px 8px" }}>
+                  {c.toggle ? (
+                    <span onClick={() => alternarAtivo(r)} title="Clique para ativar/inativar"
+                      style={{ cursor: "pointer", fontWeight: 700, fontSize: 12, padding: "2px 10px", borderRadius: 6,
+                        background: r[c.key] ? C.greenSoft : "#FBE9E7", color: r[c.key] ? C.green : C.red }}>
+                      {r[c.key] ? "Ativo" : "Inativo"}</span>
+                  ) : (c.render ? c.render(r[c.key]) : r[c.key])}</td>)}
                 <td style={{ padding: "12px 8px", textAlign: "right" }}>
                   <Pencil size={16} style={{ color: C.sub, cursor: "pointer" }} onClick={() => setModal(r)} /></td>
               </tr>))}
@@ -95,7 +107,7 @@ export function Imoveis() {
     busca={[{ key: "codigo_externo", label: "Código externo" }, { key: "endereco", label: "Endereço" },
             { key: "bairro", label: "Bairro" }]}
     colunas={[{ key: "codigo_externo", label: "Código externo" }, { key: "endereco", label: "Endereço" },
-              { key: "bairro", label: "Bairro" }, { key: "ativo", label: "Ativo", render: v => v ? "Sim" : "Não" }]}
+              { key: "bairro", label: "Bairro" }, { key: "ativo", label: "Ativo", toggle: true }]}
     campos={[
       { key: "codigo_externo", label: "Código externo", w: 1 },
       { key: "endereco", label: "Endereço", required: true, w: 2 },

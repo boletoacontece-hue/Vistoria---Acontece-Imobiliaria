@@ -27,11 +27,16 @@ export function AuthProvider({ children }) {
       .then(({ data }) => setProfile(data));
   }, [user]);
 
+  const papel = profile?.papel || "comercial";
+  const permissoes = profile?.permissoes || {};
+  // admin vê tudo; demais veem só os módulos liberados
+  const podeVer = (modulo) => papel === "admin" || permissoes[modulo] === true;
+
   const value = {
     user, profile, loading, supabaseReady,
     entrar: (email, senha) => supabase.auth.signInWithPassword({ email, password: senha }),
     sair: () => supabase.auth.signOut(),
-    papel: profile?.papel || "comercial",
+    papel, permissoes, podeVer,
   };
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }

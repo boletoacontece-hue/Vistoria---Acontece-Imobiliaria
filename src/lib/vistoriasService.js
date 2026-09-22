@@ -52,3 +52,12 @@ export async function enviarFoto(vistoriaId, file) {
   if (error) throw error;
   return path;
 }
+
+// Upload da foto 360° (equirretangular) de um ambiente — caminho fixo (substitui ao reenviar)
+export async function enviarPanorama(vistoriaId, ambienteId, file) {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `vistorias/${vistoriaId}/360/${ambienteId}.${ext}`;
+  const { error } = await supabase.storage.from("vistorias").upload(path, file, { upsert: true });
+  if (error) throw error;
+  return path;
+}

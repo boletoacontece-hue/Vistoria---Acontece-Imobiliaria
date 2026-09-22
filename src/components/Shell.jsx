@@ -1,24 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { LayoutDashboard, ClipboardCheck, CalendarDays, Building2, Users,
-  ListChecks, Bell, Maximize2, ChevronDown, WifiOff, RefreshCw, LogOut, Menu, X } from "lucide-react";
+  ListChecks, Bell, Maximize2, ChevronDown, WifiOff, RefreshCw, LogOut, Menu, X, UserCog } from "lucide-react";
 import { C, FONT } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { online, pendentes, sincronizar } from "../lib/sync";
 import { useIsMobile } from "../lib/useIsMobile";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/vistorias", label: "Vistorias", icon: ClipboardCheck },
-  { to: "/agenda", label: "Agenda", icon: CalendarDays },
-  { to: "/imoveis", label: "Imóveis", icon: Building2 },
-  { to: "/locadores", label: "Locadores", icon: Users },
-  { to: "/tipos", label: "Tipos de vistoria", icon: ListChecks },
-  { to: "/vistoriadores", label: "Vistoriadores", icon: Users },
+  { to: "/", mod: "dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/vistorias", mod: "vistorias", label: "Vistorias", icon: ClipboardCheck },
+  { to: "/agenda", mod: "agenda", label: "Agenda", icon: CalendarDays },
+  { to: "/imoveis", mod: "imoveis", label: "Imóveis", icon: Building2 },
+  { to: "/locadores", mod: "locadores", label: "Locadores", icon: Users },
+  { to: "/tipos", mod: "tipos", label: "Tipos de vistoria", icon: ListChecks },
+  { to: "/vistoriadores", mod: "vistoriadores", label: "Vistoriadores", icon: Users },
+  { to: "/usuarios", mod: "usuarios", label: "Usuários", icon: UserCog, adminOnly: true },
 ];
 
 export default function Shell() {
-  const { profile, sair } = useAuth();
+  const { profile, sair, papel, podeVer } = useAuth();
   const isMobile = useIsMobile();
   const [pend, setPend] = useState(0);
   const [off, setOff] = useState(!online());
@@ -55,7 +56,7 @@ export default function Shell() {
           {isMobile && <X size={22} style={{ cursor: "pointer" }} onClick={() => setDrawer(false)} />}
         </div>
         <nav style={{ padding: "14px 12px" }}>
-          {NAV.map(n => (
+          {NAV.filter(n => (n.adminOnly ? papel === "admin" : podeVer(n.mod))).map(n => (
             <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setDrawer(false)}
               style={({ isActive }) => ({
                 display: "flex", gap: 12, alignItems: "center", padding: "12px 14px",
@@ -81,7 +82,8 @@ export default function Shell() {
             {pend > 0 && <button onClick={() => sincronizar()} style={{ display: "flex", gap: 6, alignItems: "center",
               background: C.goldSoft, color: "#8a6d00", border: "none", borderRadius: 8, padding: "5px 10px",
               fontSize: 12, fontWeight: 700, cursor: "pointer" }}><RefreshCw size={14} /> {pend}{!isMobile && " p/ sincronizar"}</button>}
-            {!isMobile && <Maximize2 size={18} color={C.sub} style={{ cursor: "pointer" }} />}
+            {!isMobile && <Maximize2 size={18} color={C.sub} style={{ cursor: "pointer" }}
+              onClick={() => { const d = document; d.fullscreenElement ? d.exitFullscreen() : d.documentElement.requestFullscreen?.(); }} />}
             {!isMobile && <Bell size={18} color={C.sub} style={{ cursor: "pointer" }} />}
             <div style={{ position: "relative" }}>
               <div onClick={() => setMenuAberto(o => !o)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>

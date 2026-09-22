@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, ChevronRight, Camera, AlertTriangle, FileText,
-  Building2, ListChecks } from "lucide-react";
+  Building2, ListChecks, Orbit, ExternalLink, X, MapPin } from "lucide-react";
 import { C, ESTADOS, estadoCor } from "../lib/theme";
 import { PageHeader, Card, Field, Btn, inputStyle, situacaoBadge, Badge } from "../components/ui";
-import { carregarVistoria, salvar, enviarFoto } from "../lib/vistoriasService";
-import { supabaseReady } from "../lib/supabase";
+import { carregarVistoria, salvar, enviarFoto, enviarPanorama } from "../lib/vistoriasService";
+import Panorama360 from "../components/Panorama360";
+import { supabase, supabaseReady } from "../lib/supabase";
 import { DEMO_DETALHE } from "../lib/demo";
 import { gerarLaudoPDF } from "../lib/pdf";
 
@@ -14,17 +15,27 @@ export default function Editor() {
   const nav = useNavigate();
   const [v, setV] = useState(null);
   const [aberto, setAberto] = useState(null);
+  const [tour360, setTour360] = useState(false);
+  const [pano, setPano] = useState(null);
+  const [erroCarga, setErroCarga] = useState("");
 
   useEffect(() => {
     if (!supabaseReady) { setV(DEMO_DETALHE); setAberto(DEMO_DETALHE.ambientes[0]?.id); return; }
     carregarVistoria(id).then(d => { setV(d); setAberto(d.ambientes?.[0]?.id); })
-      .catch(() => { setV(DEMO_DETALHE); setAberto(DEMO_DETALHE.ambientes[0]?.id); });
+      .catch((e) => setErroCarga(e.message || "Vistoria não encontrada."));
   }, [id]);
 
   const totalDiv = useMemo(() =>
     v?.ambientes?.reduce((a, amb) => a + amb.itens.filter(i => i.divergencia).length, 0) || 0, [v]);
 
+  if (erroCarga) return <div style={{ padding: 40, color: C.red }}>Não foi possível abrir a vistoria: {erroCarga}</div>;
   if (!v) return <div style={{ padding: 40 }}>Carregando…</div>;
+
+  // Atualiza campos escalares da vistoria (ex.: link do tour 360°) e persiste
+  function patchVistoria(patch) {
+    setV(cur => ({ ...cur, ...patch }));
+    if (supabaseReady) supabase.from("vistorias").update(patch).eq("id", v.id).then(() => {});
+  }
 
   function patchItem(ambId, itemId, patch) {
     const ambientes = v.ambientes.map(a => a.id === ambId
@@ -54,10 +65,32 @@ export default function Editor() {
     if (supabaseReady) { try { await enviarFoto(v.id, file); } catch {} }
   }
 
+  // envia a foto 360° do ambiente e grava o caminho
+  async function onPanorama(e, ambId) {
+    const file = e.target.files?.[0]; if (!file) return;
+    if (!supabaseReady) { alert("Configure o Supabase para enviar o panorama."); return; }
+    try {
+      const path = await enviarPanorama(v.id, ambId, file);
+      const ambientes = v.ambientes.map(a => a.id === ambId ? { ...a, panorama_path: path } : a);
+      setV({ ...v, ambientes });
+      await supabase.from("ambientes").update({ panorama_path: path }).eq("id", ambId);
+    } catch (err) { alert("Falha ao enviar 360°: " + err.message); }
+  }
+
+  // persiste os marcadores do 360° de um ambiente
+  function salvarMarcadores(ambId, marcadores) {
+    const ambientes = v.ambientes.map(a => a.id === ambId ? { ...a, marcadores } : a);
+    setV({ ...v, ambientes });
+    if (supabaseReady) supabase.from("ambientes").update({ marcadores }).eq("id", ambId).then(() => {});
+  }
+
   return (
     <div>
       <PageHeader title={`Vistoria ${v.codigo}`} right={
-        <Btn kind="gold" icon={FileText} onClick={() => gerarLaudoPDF(v)}>Gerar laudo (PDF)</Btn>} />
+        <div style={{ display: "flex", gap: 10 }}>
+          {v.tour_360_url && <Btn kind="ghost" icon={Orbit} onClick={() => setTour360(true)}>Vistoria em 360°</Btn>}
+          <Btn kind="gold" icon={FileText} onClick={() => gerarLaudoPDF(v)}>Gerar laudo (PDF)</Btn>
+        </div>} />
       <Card>
         <button onClick={() => nav("/vistorias")} style={{ background: "none", border: "none",
           color: C.green, cursor: "pointer", fontWeight: 700, display: "flex", gap: 6,
@@ -68,6 +101,14 @@ export default function Editor() {
           <Field label="Imóvel" w={4}><div style={{ fontWeight: 600, fontSize: 13 }}>{v.imovel?.endereco}</div></Field>
           <Field label="Situação"><div>{situacaoBadge(v.situacao)} <span style={{ marginLeft: 6 }}>{v.tipo?.nome}</span></div></Field>
           <Field label="Vistoriador"><div style={{ fontSize: 13 }}>{v.vistoriador?.nome}</div></Field>
+        </div>
+
+        <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, marginBottom: 20,
+          display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <Field label="Tour 360° — link do HVR360 (cola aqui o endereço do tour)" w={4}>
+            <input style={inputStyle} value={v.tour_360_url || ""} placeholder="https://ws.hvr360.net/tourvirtual/vistoria/..."
+              onChange={e => patchVistoria({ tour_360_url: e.target.value })} /></Field>
+          <Btn kind="ghost" icon={Orbit} onClick={() => v.tour_360_url && setTour360(true)}>Abrir 360°</Btn>
         </div>
 
         <div style={{ display: "flex", gap: 14, marginBottom: 18, flexWrap: "wrap" }}>
@@ -129,19 +170,57 @@ export default function Editor() {
                     </div>
                   </div>
                 ))}
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                   <Btn kind="ghost" icon={Plus} small onClick={()=>addItem(amb.id)}>Adicionar item</Btn>
                   <label style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13,
                     color: C.green, cursor: "pointer", fontWeight: 700 }}>
                     <Camera size={16} /> Anexar fotos
                     <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
                       onChange={e=>onFoto(e, amb.id)} /></label>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13,
+                    color: C.green, cursor: "pointer", fontWeight: 700 }}>
+                    <MapPin size={16} /> {amb.panorama_path ? "Trocar 360°" : "Enviar foto 360°"}
+                    <input type="file" accept="image/*" style={{ display: "none" }}
+                      onChange={e=>onPanorama(e, amb.id)} /></label>
+                  {amb.panorama_path && <Btn kind="soft" icon={MapPin} small onClick={()=>setPano(amb.id)}>
+                    Abrir 360° {amb.marcadores?.length ? `(${amb.marcadores.length})` : ""}</Btn>}
                 </div>
               </div>
             )}
           </div>
         ))}
       </Card>
+
+      {tour360 && v.tour_360_url && <Tour360 url={v.tour_360_url} onClose={() => setTour360(false)} />}
+
+      {pano && (() => {
+        const amb = v.ambientes.find(a => a.id === pano);
+        if (!amb) return null;
+        return <Panorama360 path={amb.panorama_path} marcadores={amb.marcadores || []} editavel
+          onChange={(m) => salvarMarcadores(amb.id, m)} onClose={() => setPano(null)} />;
+      })()}
+    </div>
+  );
+}
+
+// Visualizador do tour 360° embutido (iframe). O HVR360 permite integração via IFRAME.
+function Tour360({ url, onClose }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(20,31,20,0.9)", zIndex: 200,
+      display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "12px 18px", color: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
+          <Orbit size={18} /> Vistoria em 360°
+        </div>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <a href={url} target="_blank" rel="noreferrer" style={{ color: "#fff", fontSize: 13,
+            display: "flex", alignItems: "center", gap: 6 }}><ExternalLink size={15} /> Abrir em nova aba</a>
+          <X size={24} style={{ cursor: "pointer", color: "#fff" }} onClick={onClose} />
+        </div>
+      </div>
+      <iframe title="Tour 360°" src={url} allow="fullscreen; xr-spatial-tracking; gyroscope; accelerometer"
+        style={{ flex: 1, border: "none", width: "100%", background: "#000" }} />
     </div>
   );
 }

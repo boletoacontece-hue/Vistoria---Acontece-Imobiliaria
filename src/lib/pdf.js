@@ -48,6 +48,14 @@ export async function gerarLaudoPDF(v) {
     `Vistoriador: ${v.vistoriador?.nome || "—"}    Data: ${v.data_vistoria || "—"}    Código: ${v.codigo}`,
   ];
   dados.forEach(d => { doc.splitTextToSize(d, W - 2 * M).forEach(l => { doc.text(l, M, y); quebra(5.5); }); });
+  if (v.tour_360_url) {
+    doc.setTextColor(...GREEN); doc.setFont("helvetica", "bold");
+    doc.text("Vistoria em 360°: ", M, y);
+    const lw = doc.getTextWidth("Vistoria em 360°: ");
+    doc.setFont("helvetica", "normal"); doc.setTextColor(46, 125, 176);
+    doc.textWithLink(v.tour_360_url, M + lw, y, { url: v.tour_360_url });
+    doc.setTextColor(30); quebra(6);
+  }
   quebra(3);
 
   // Ambientes → itens

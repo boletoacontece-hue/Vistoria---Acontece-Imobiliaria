@@ -6,6 +6,7 @@ import { PageHeader, Card, Field, Btn, inputStyle, situacaoBadge } from "../comp
 import { listarVistorias } from "../lib/vistoriasService";
 import { supabaseReady } from "../lib/supabase";
 import { DEMO_VISTORIAS } from "../lib/demo";
+import NovaVistoriaModal from "../components/NovaVistoriaModal";
 
 const TIPOS = ["Captação Avaliação","Entrada","Faxina (Limpeza)","Manutenção/Reparos","Reforma","Saída"];
 const VISTORIADORES = ["Leomar Caetano","Katia de Souza F.","Nelson Holanda"];
@@ -13,12 +14,16 @@ const VISTORIADORES = ["Leomar Caetano","Katia de Souza F.","Nelson Holanda"];
 export default function Vistorias() {
   const [rows, setRows] = useState([]);
   const [menu, setMenu] = useState(null);
+  const [novaAberto, setNovaAberto] = useState(false);
+  const [erro, setErro] = useState("");
   const nav = useNavigate();
 
-  useEffect(() => {
+  function carregar() {
     if (!supabaseReady) { setRows(DEMO_VISTORIAS); return; }
-    listarVistorias().then(setRows).catch(() => setRows(DEMO_VISTORIAS));
-  }, []);
+    listarVistorias().then(r => { setRows(r); setErro(""); })
+      .catch(e => { setRows([]); setErro(e.message); });
+  }
+  useEffect(() => { carregar(); }, []);
 
   return (
     <div>
@@ -43,7 +48,7 @@ export default function Vistorias() {
           <Field label="Período"><input style={inputStyle} placeholder="dd/mm — dd/mm" /></Field>
           <div style={{ display: "flex", gap: 10, marginLeft: "auto" }}>
             <Btn kind="primary" icon={Search}>Pesquisar</Btn>
-            <Btn kind="gold" icon={Plus} onClick={() => nav("/vistorias/nova")}>Novo</Btn>
+            <Btn kind="gold" icon={Plus} onClick={() => setNovaAberto(true)}>Novo</Btn>
           </div>
         </div>
 
@@ -54,6 +59,9 @@ export default function Vistorias() {
                 <th key={h} style={{ padding: "10px 8px", fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}
             </tr></thead>
             <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: 28, textAlign: "center", color: C.sub }}>
+                  {erro ? `Erro: ${erro}` : "Nenhuma vistoria. Clique em Novo para criar a primeira."}</td></tr>)}
               {rows.map(v => (
                 <tr key={v.id} style={{ borderBottom: `1px solid ${C.line}` }}>
                   <td onClick={()=>nav(`/vistorias/${v.id}`)} style={{ padding: "12px 8px", fontWeight: 700, color: C.green, cursor: "pointer" }}>{v.codigo}</td>
@@ -84,6 +92,9 @@ export default function Vistorias() {
           </table>
         </div>
       </Card>
+
+      {novaAberto && <NovaVistoriaModal onClose={() => setNovaAberto(false)}
+        onCriada={(id) => { setNovaAberto(false); nav(`/vistorias/${id}`); }} />}
     </div>
   );
 }

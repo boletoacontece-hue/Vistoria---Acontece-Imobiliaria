@@ -12,8 +12,10 @@ export const DEMO_VISTORIAS = [
 ];
 export const DEMO_DETALHE = {
   ...DEMO_VISTORIAS[0],
+  tour_360_url: "https://ws.hvr360.net/tourvirtual/vistoria/3E6QTXGO",
   ambientes: [
-    { id: "a1", nome: "Sala", complemento: "Sala de estar/jantar", ordem: 0, itens: [
+    { id: "a1", nome: "Sala", complemento: "Sala de estar/jantar", ordem: 0,
+      panorama_path: "https://photo-sphere-viewer-data.netlify.app/assets/sphere.jpg", marcadores: [], itens: [
       { id: "i1", nome: "Piso", estado: "Bom", cor_material: "Porcelanato bege", observacao: "Sem avarias.", divergencia: false, ordem: 0 },
       { id: "i2", nome: "Parede", estado: "Regular", cor_material: "Branco gelo", observacao: "Marcas no interruptor.", divergencia: true, responsavel: "Locatário", ordem: 1 },
     ]},
